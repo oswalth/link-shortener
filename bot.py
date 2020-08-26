@@ -2,9 +2,10 @@ import telebot
 import config
 import utils
 import re
+import setup
 from telebot import types
 
-
+setup.launch_db()
 
 bot = telebot.TeleBot(config.TOKEN)
 

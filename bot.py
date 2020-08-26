@@ -1,51 +1,46 @@
 import telebot
 import config
-import requests
-import json
+import utils
+import re
 from telebot import types
 
-chat_history = {}
 
 
 bot = telebot.TeleBot(config.TOKEN)
 
+# Слушаем команду  старт, чтобы приветствовать юзера
 @bot.message_handler(commands=["start"])
 def welcome(message):
-
-  
-
   sti = open("./static/sticker.webp", 'rb')
   bot.send_sticker(message.chat.id, sti)
   bot.send_message(message.chat.id, 
     "Привет {}. Отправь мне ссылку, а я верну тебе укороченный вариант".format(message.from_user.first_name), 
     parse_mode="html")
-  chat_history[message.chat.id] = []
 
-
+# Слушаем команду history, чтобы отдать 10 последних ссылок
 @bot.message_handler(commands=["history"])
 def get_links_history(message):
-  if chat_history:
-    response = "\n".join([link for link in chat_history[message.chat.id][-10:]])
-    bot.send_message(message.chat.id, response)
+  response = utils.select_links(message)
+  bot.send_message(message.chat.id, response, disable_web_page_preview=True)
 
-
+# Слушаем любые текстовые сообщения
 @bot.message_handler(content_types=['text'])
 def shorten_link(message):
+
+  # Добавляем кнопку показа 10 последних ссылок
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
   markup.add(types.KeyboardButton("/history"))
 
-  try:
-    response = requests.post(config.SHORTENER_LINK, {"url": message.text})
-    if (response.status_code == 400):
-      bot.send_message(message.chat.id, "Неверный адрес, попробуйте заново.")
-    else:
-      short_link = f"{config.SHORTENER_PREFIX}{response.json()['hashid']}"
-      bot.send_message(message.chat.id, short_link,
-      reply_markup=markup)
-      if short_link not in chat_history[message.chat.id]:
-        chat_history[message.chat.id].append(short_link)
-  except json.decoder.JSONDecodeError:
-    bot.send_message(message.chat.id, "Сервис временно недоступен")
+  # Выделяем из сообщения только ссылки
+  links = re.findall("(?P<url>https?://[^\s]+)", message.text)
+
+  # Формируем ответ бота в виде <ссылка> - <короткая_ссылка>
+  response = utils.shorten_links(links, message.chat.id)
+  # Отправляем итоговый ответ пользователю, скрывая превью веб-страницы
+  bot.send_message(message.chat.id, response, disable_web_page_preview=True, reply_markup=markup)
+
+
 
 print('Bot is running...')
-bot.polling(none_stop=True)
+# Бот слушает в режиме нон-стоп 
+bot.infinity_polling(True)

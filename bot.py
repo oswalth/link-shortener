@@ -5,10 +5,12 @@ import re
 import os
 import setup
 from telebot import types
+from flask import Flask, request
 
 setup.launch_db()
 
 bot = telebot.TeleBot(config.TOKEN)
+server = Flask(__name__)
 
 # Слушаем команду  старт, чтобы приветствовать юзера
 @bot.message_handler(commands=["start"])
@@ -42,7 +44,21 @@ def shorten_link(message):
   bot.send_message(message.chat.id, response, disable_web_page_preview=True, reply_markup=markup)
 
 
+@server.route('/' + config.TOKEN, methods=['POST'])
+def recieveMessage():
+  bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+  return "!", 200
+
+@server.route('/')
+def webhook():
+  bot.remove_webhook()
+  bot.set_webhook(url="https://fathomless-bastion-55645.herokuapp.com/" + config.TOKEN)
+  return '!', 200
 
 print('Bot is running...')
 # Бот слушает в режиме нон-стоп 
-bot.polling()
+if __name__ == '__main__':
+  server.debug = True
+  server.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+# bot.polling()

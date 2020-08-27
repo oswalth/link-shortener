@@ -2,6 +2,7 @@ import telebot
 import config
 import utils
 import re
+import os
 import setup
 from telebot import types
 
@@ -44,4 +45,4 @@ def shorten_link(message):
 
 print('Bot is running...')
 # Бот слушает в режиме нон-стоп 
-bot.infinity_polling(True)
+bot.polling()

@@ -58,7 +58,7 @@ def webhook():
 print('Bot is running...')
 # Бот слушает в режиме нон-стоп 
 if __name__ == '__main__':
+    # bot.polling()
     server.debug = True
     server.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-# bot.polling()

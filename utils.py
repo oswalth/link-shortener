@@ -6,23 +6,24 @@ import json
 
 
 def insert_link(chat_id, link, short_link): 
-  with sqlite3.connect('messages.db') as db:
-    sql = db.cursor()
-    sql.execute(f"""SELECT shortened_link FROM ShortLink 
-                    WHERE shortened_link=? AND chat_id=?""", (short_link, chat_id)
-                    )
-    if sql.fetchone() is None:
-      print(f"Добавляем {link}")
-      sql.execute(f"""INSERT INTO ShortLink (chat_id, link, shortened_link, sent_at) 
-                      VALUES(?,?,?,?)""",
-                      (str(chat_id), link, short_link, time.time())
-                      )
-      print('Запись сохранена в БД')
-    else:
-      sql.execute(f"""UPDATE ShortLink
-                     SET sent_at=? 
-                     WHERE chat_id=? AND link=?""", (time.time(), chat_id, link))
-    db.commit()
+    with sqlite3.connect('messages.db') as db:
+
+        sql = db.cursor()
+        sql.execute(f"""SELECT shortened_link FROM ShortLink 
+                        WHERE shortened_link=? AND chat_id=?""", (short_link, chat_id)
+                        )
+        if sql.fetchone() is None:
+          print(f"Добавляем {link}")
+          sql.execute(f"""INSERT INTO ShortLink (chat_id, link, shortened_link, sent_at) 
+                          VALUES(?,?,?,?)""",
+                          (str(chat_id), link, short_link, time.time())
+                          )
+          print('Запись сохранена в БД')
+        else:
+          sql.execute(f"""UPDATE ShortLink
+                         SET sent_at=? 
+                         WHERE chat_id=? AND link=?""", (time.time(), chat_id, link))
+        db.commit()
     
 
 
@@ -45,6 +46,7 @@ def shorten_links(links, chat_id):
         "workspace": config.WORKSPACE_ID
     }
     short_links = []
+
     for link in links:
         link_request = {
             "destination": link,
@@ -53,8 +55,7 @@ def shorten_links(links, chat_id):
         http_response = requests.post(config.SHORTENER_LINK, json.dumps(link_request), headers=request_headers)
         # Если ссылка обработалась правильно
         if http_response.status_code == requests.codes.ok:
-            link = http_response.json()
-            short_link = link["shortUrl"]
+            short_link = http_response.json()["shortUrl"]
 
           # Записываем результат сокращения ссылки в БД и добавляем к ответу бота
             insert_link(chat_id, link, short_link)

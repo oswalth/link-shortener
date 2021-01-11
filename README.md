@@ -33,4 +33,20 @@ python bot.py
 
 # API
 
-[url shortener](https://rel.ink/)
+# Команды:
+
+/start - Начало работы
+
+/history - вывод 10 последних сокращённых ссылок
+
+https://site.com - вернёт коротку ссылку текущего сайта
+
+Бот может обработать множество ссылок из одного сообщения
+https://site1.com
+https://site2.com
+https://site3.com
+Вернёт список сокращённых ссылок для каждого адреса из сообщения
+
+![Img Alt Text](https://s2.gifyu.com/images/linker.gif)
+
+[Link shortener API](https://rebrandly.com/)

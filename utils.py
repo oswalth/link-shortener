@@ -2,6 +2,8 @@ import sqlite3
 import time
 import requests
 import config
+import json
+
 
 def insert_link(chat_id, link, short_link): 
   with sqlite3.connect('messages.db') as db:
@@ -37,33 +39,43 @@ def select_links(message):
 
 
 def shorten_links(links, chat_id):
-  short_links = []
-  for link in links:
-    http_response = requests.post(config.SHORTENER_LINK, {"url": link})
-    # Если ссылка обработалась правильно
-    if (http_response.status_code in [200, 201]):
-      short_link=f"{config.SHORTENER_PREFIX}{http_response.json()['hashid']}"
+    request_headers = {
+        "Content-type": "application/json",
+        "apikey": config.API_KEY,
+        "workspace": config.WORKSPACE_ID
+    }
+    short_links = []
+    for link in links:
+        link_request = {
+            "destination": link,
+            "domain": {"fullName": "rebrand.ly"}
+        }
+        http_response = requests.post(config.SHORTENER_LINK, json.dumps(link_request), headers=request_headers)
+        # Если ссылка обработалась правильно
+        if http_response.status_code == requests.codes.ok:
+            link = http_response.json()
+            short_link = link["shortUrl"]
 
-      # Записываем результат сокращения ссылки в БД и добавляем к ответу бота
-      insert_link(chat_id, link, short_link)
-      short_links.append(f"{link} - {short_link}")
+          # Записываем результат сокращения ссылки в БД и добавляем к ответу бота
+            insert_link(chat_id, link, short_link)
+            short_links.append(f"{link} - {short_link}")
 
-    # Если неправильный запрос
-    elif (str(http_response.status_code)[0] == '4'):
-      msg = f"Неверный адрес - {link}, попробуйте заново."
-      short_links.append(msg)
+        # Если неправильный запрос
+        elif str(http_response.status_code)[0] == '4':
+            msg = f"Неверный адрес - {link}, попробуйте заново."
+            short_links.append(msg)
 
-    # Если лежит api
-    elif (str(http_response.status_code)[0] == '5'):
-      msg = "Сервис временно недоступен. Попробуйте позже\U0001F4A4"
-      short_links.append(msg)
-      break
+        # Если лежит api
+        elif str(http_response.status_code)[0] == '5':
+            msg = "Сервис временно недоступен. Попробуйте позже\U0001F4A4"
+            short_links.append(msg)
+            break
 
-    # Непредвиденные обстоятельства
-    else:
-      msg = "Ошибка"
-      short_links.append(msg)
-      break
-  if short_links:
-    return "\n".join([short_link for short_link in short_links])
-  return "Текст не содержит ссылок типа https://site.com\U0001F614"
+        # Непредвиденные обстоятельства
+        else:
+            msg = "Ошибка"
+            short_links.append(msg)
+            break
+    if short_links:
+        return "\n".join([short_link for short_link in short_links])
+    return "Текст не содержит ссылок типа https://site.com\U0001F614"
